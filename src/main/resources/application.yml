@@ -1,0 +1,34 @@
+server:
+  port: 8080
+
+spring:
+
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/yolngu_card?useSSL=false&serverTimezone=Australia/Adelaide&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+    username: root
+    password: wangchuang
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: wang973129011@gmail.com
+    password: xjrjiwpuovfxqnwh   # 注意是应用专用密码
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+
+  redis:
+    host: localhost
+    port: 6379
+
+app:
+  mail:
+    from: no-reply@yothuyindi.org
+  verify:
+    code-ttl-seconds: 300
+    send-cooldown-seconds: 60
+    jwt-secret: change-me-please-this-key-should-be-32-bytes-min
+    jwt-ttl-seconds: 6000
