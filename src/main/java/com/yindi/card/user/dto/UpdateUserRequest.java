@@ -25,6 +25,8 @@ public class UpdateUserRequest {
 
     private String photoUrl;
 
+    private String role;
+
     private Integer yearOfBirth;   // ✅ 新增
 
     // ===== Getter / Setter =====
@@ -90,6 +92,13 @@ public class UpdateUserRequest {
     }
     public void setPhotoUrl(String photoUrl) {
         this.photoUrl = photoUrl;
+    }
+
+    public String getRole() {
+        return role;
+    }
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public Integer getYearOfBirth() { return yearOfBirth; }

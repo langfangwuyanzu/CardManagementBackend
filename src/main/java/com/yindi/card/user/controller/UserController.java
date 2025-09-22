@@ -20,6 +20,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+// Spring Data JPA 分页与排序
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -109,6 +115,31 @@ public class UserController {
             return ResponseEntity.status(400).body(err("invalid_token_or_internal", e.getMessage()));
         }
     }
+
+    @GetMapping("/userList")
+    public ResponseEntity<?> userList(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        try {
+            // 防止非法分页参数
+            if (page < 0 || size <= 0) {
+                return ResponseEntity.badRequest().body(err("invalid_pagination", "page must >= 0 and size must > 0"));
+            }
+
+            Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending()); // 默认按 id 倒序
+            Page<User> usersPage = repo.findAll(pageable);
+
+            // 转换为你定义的视图类（假设是 UserView）
+            Page<UserView> resultPage = usersPage.map(UserView::from);
+
+            return ResponseEntity.ok(resultPage);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(err("internal_error", e.getMessage()));
+        }
+    }
+
 
     // ====== 2) 修改当前用户：先取 SecurityContext；取不到再回退解析 Authorization ======
 
@@ -211,6 +242,7 @@ public class UserController {
         public String postcode;
         public String photoUrl;
         public String email;
+        public String role;
         public int birthday;
         public List<TrainingExperienceView> experiences;
 
@@ -227,7 +259,7 @@ public class UserController {
             v.photoUrl = u.getPhotoUrl();
             v.email = u.getEmail();
             v.birthday = u.getYearOfBirth() == null ? 0 : u.getYearOfBirth();
-
+            v.role = u.getRole();
             List<UserTrainingExperience> exps = u.getExperiences();
             v.experiences = (exps == null)
                     ? Collections.emptyList()

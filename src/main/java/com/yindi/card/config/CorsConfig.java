@@ -13,10 +13,15 @@ public class CorsConfig {
       @Override
       public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-          .allowedOrigins("http://localhost:5179", "http://localhost:3000")
-          .allowedMethods("*")
-          .allowedHeaders("*")
-          .allowCredentials(true);
+                .allowedOrigins(
+                        "http://localhost:5173",
+                        "http://localhost:3000",
+                        "https://*.trycloudflare.com" // ✅ 允许 Cloudflare 隧道访问
+                )
+                .allowedOriginPatterns("*")
+                .allowedMethods("*")
+                .allowedHeaders("*")
+                .allowCredentials(true);
       }
     };
   }
