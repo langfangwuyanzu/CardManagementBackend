@@ -45,6 +45,9 @@ public class User {
     @Column(name="photo_url")
     private String photoUrl;
 
+    @Column(name="role")
+    private String role;
+
     @Column(name="created_at", nullable=false, updatable=false)
     private LocalDateTime createdAt;
 
@@ -100,6 +103,9 @@ public class User {
 
     public String getPhotoUrl() { return photoUrl; }
     public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 
