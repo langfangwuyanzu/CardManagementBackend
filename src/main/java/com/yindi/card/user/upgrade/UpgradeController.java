@@ -60,8 +60,21 @@ public class UpgradeController {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
+
+        if (req.getNewLevel() == "") {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Level cannot be null");
+        }
+        // 这里直接保存，不要误判 1
         user.setCardLevel(req.getNewLevel());
 
+        // 其他保存逻辑...
+        if (req.getTrainingUndertaken() != null) {
+            // 保存 training 表
+        }
+
+        if (file != null && !file.isEmpty()) {
+            // 保存文件逻辑
+        }
         UserTrainingExperience exp = new UserTrainingExperience();
         exp.setTrainingUndertaken(req.getTrainingUndertaken());
         exp.setTrainingProvider(req.getTrainingProvider());
