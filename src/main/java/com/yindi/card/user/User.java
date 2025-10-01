@@ -1,6 +1,8 @@
 package com.yindi.card.user;
 
 import jakarta.persistence.*;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +49,9 @@ public class User {
 
     @Column(name="role")
     private String role;
+
+    @Column(name="expire_date")
+    private LocalDate expireDate;
 
     @Column(name="created_at", nullable=false, updatable=false)
     private LocalDateTime createdAt;
@@ -106,6 +111,9 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public LocalDate getExpireDate() { return expireDate; }
+    public void setExpireDate(LocalDate expireDate) { this.expireDate = expireDate; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 
