@@ -75,6 +75,21 @@ public class User {
     @Column(name="created_at", nullable=false, updatable=false)
     private LocalDateTime createdAt;
 
+
+    // 卡片发放状态（NONE, REQUESTED, APPROVED, ACTIVATED, REVOKED, EXPIRED）
+    @Column(name = "card_issue_status")
+    @Enumerated(EnumType.STRING)
+    private CardIssueStatus cardIssueStatus;  // 你可以定义一个枚举类见下方
+
+    // 卡号
+    @Column(name = "card_number", unique = true)
+    private String cardNumber;
+
+    // 卡片激活时间（对应数据库 card_activated_at）
+    @Column(name = "card_activated_at")
+    private LocalDateTime cardActivatedAt;
+
+
     // ✅ 只保留这一份 experiences
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<UserTrainingExperience> experiences = new ArrayList<>();
@@ -174,6 +189,31 @@ public class User {
         this.activatedAt = activatedAt;
     }
 
+    public CardIssueStatus getCardIssueStatus() {
+        return cardIssueStatus;
+    }
+
+    public void setCardIssueStatus(CardIssueStatus cardIssueStatus) {
+        this.cardIssueStatus = cardIssueStatus;
+    }
+
+    public String getCardNumber() {
+        return cardNumber;
+    }
+
+    public void setCardNumber(String cardNumber) {
+        this.cardNumber = cardNumber;
+    }
+
+    public LocalDateTime getCardActivatedAt() {
+        return cardActivatedAt;
+    }
+
+    public void setCardActivatedAt(LocalDateTime cardActivatedAt) {
+        this.cardActivatedAt = cardActivatedAt;
+    }
+
+
     // 是否激活
     public Boolean getIsActive() {
         return isActive;
@@ -188,3 +228,4 @@ public class User {
     public List<UserTrainingExperience> getExperiences() { return experiences; }
     public void setExperiences(List<UserTrainingExperience> experiences) { this.experiences = experiences; }
 }
+

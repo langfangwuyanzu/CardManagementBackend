@@ -36,6 +36,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Collections;
 import java.util.stream.Collectors;
+import com.yindi.card.user.CardIssueStatus; // 如果你用枚举
 
 @RestController
 @RequestMapping("/api/users")
@@ -167,6 +168,126 @@ public class UserController {
         public void setReason(String reason) { this.reason = reason; }
     }
 
+    /** 同意发卡：仅允许在 REQUESTED 状态下同意 */
+    @PostMapping("/{id}/card/approve")
+    @PermitAll
+    @Transactional
+    public ResponseEntity<?> approveCard(@PathVariable Long id,
+                                         @RequestBody(required = false) CardApproveRequest body,
+                                         Authentication auth) {
+        try {
+            User u = repo.findById(id).orElse(null);
+            if (u == null) return ResponseEntity.status(404).body(err("user_not_found", "id=" + id));
+
+            // 仅处理卡流程，不改用户 status
+            if (u.getCardIssueStatus() == null || u.getCardIssueStatus() == CardIssueStatus.NONE) {
+                return ResponseEntity.status(409).body(err("invalid_card_state",
+                        "当前未发起卡片申请(状态 NONE)，无法同意。"));
+            }
+            if (u.getCardIssueStatus() != CardIssueStatus.REQUESTED) {
+                return ResponseEntity.status(409).body(err("invalid_card_state",
+                        "只有 REQUESTED 状态可以同意，当前为：" + u.getCardIssueStatus()));
+            }
+
+            // 审批人（可选）
+            Long adminId = null;
+            if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+                String adminEmail = auth.getName();
+                adminId = repo.findByEmail(adminEmail).map(User::getId).orElse(null);
+            }
+
+            // 同意发卡：置为 APPROVED；不自动激活
+            u.setCardIssueStatus(CardIssueStatus.APPROVED);
+            if (body != null && StringUtils.hasText(body.getCardNumber())) {
+                u.setCardNumber(body.getCardNumber());
+            }
+            // 可选：设置有效期
+            if (body != null && body.getValidYears() != null && body.getValidYears() > 0) {
+                u.setExpireDate(LocalDate.now().plusYears(body.getValidYears()));
+            }
+
+            // 卡还未激活
+            u.setIsActive(Boolean.FALSE);
+            u.setCardActivatedAt(null);
+            // 不改用户 activatedAt/approvedAt/状态 等“用户审批”字段
+            repo.saveAndFlush(u);
+
+            Map<String, Object> ok = new LinkedHashMap<>();
+            ok.put("ok", true);
+            ok.put("id", u.getId());
+            ok.put("cardIssueStatus", u.getCardIssueStatus().name());
+            ok.put("cardNumber", u.getCardNumber());
+            return ResponseEntity.ok(ok);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(err("card_approve_failed", e.getMessage()));
+        }
+    }
+
+    /** 拒绝发卡：仅允许在 REQUESTED 状态下拒绝 */
+    @PostMapping("/{id}/card/reject")
+    @PermitAll
+    @Transactional
+    public ResponseEntity<?> rejectCard(@PathVariable Long id,
+                                        @RequestBody(required = false) CardRejectRequest body,
+                                        Authentication auth) {
+        try {
+            User u = repo.findById(id).orElse(null);
+            if (u == null) return ResponseEntity.status(404).body(err("user_not_found", "id=" + id));
+
+            if (u.getCardIssueStatus() != CardIssueStatus.REQUESTED) {
+                return ResponseEntity.status(409).body(err("invalid_card_state",
+                        "只有 REQUESTED 状态可以拒绝，当前为：" + u.getCardIssueStatus()));
+            }
+
+            // 审批人（可选）——这里只做记录用途，如你有字段可接入
+            Long adminId = null;
+            if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+                String adminEmail = auth.getName();
+                adminId = repo.findByEmail(adminEmail).map(User::getId).orElse(null);
+            }
+
+            // 拒绝发卡：回到 NONE；清空卡信息
+            u.setCardIssueStatus(CardIssueStatus.NONE);
+            u.setCardNumber(null);
+            u.setCardActivatedAt(null);
+            u.setIsActive(Boolean.FALSE);
+            // 可选：把拒绝原因写到用户层面的 rejection_reason
+            if (body != null && StringUtils.hasText(body.getReason())) {
+                u.setRejectionReason(body.getReason());
+            }
+            repo.saveAndFlush(u);
+
+            Map<String, Object> ok = new LinkedHashMap<>();
+            ok.put("ok", true);
+            ok.put("id", u.getId());
+            ok.put("cardIssueStatus", u.getCardIssueStatus().name());
+            return ResponseEntity.ok(ok);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(err("card_reject_failed", e.getMessage()));
+        }
+    }
+
+    /** 同意发卡请求体（可选） */
+    public static class CardApproveRequest {
+        private String cardNumber;     // 可选：同意时就录入卡号
+        private Integer validYears;    // 可选：同意时设置有效期（年）
+        public String getCardNumber() { return cardNumber; }
+        public void setCardNumber(String cardNumber) { this.cardNumber = cardNumber; }
+        public Integer getValidYears() { return validYears; }
+        public void setValidYears(Integer validYears) { this.validYears = validYears; }
+    }
+
+    /** 拒绝发卡请求体（可选）——避免与原有 RejectRequest 冲突 */
+    public static class CardRejectRequest {
+        private String reason;
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
+    }
+
 
     // ====== 1) 当前用户：基于 token 返回完整用户信息（含 Training Experience） ======
 
@@ -222,6 +343,8 @@ public class UserController {
             return ResponseEntity.status(500).body(err("internal_error", e.getMessage()));
         }
     }
+
+
 
 
     // ====== 2) 修改当前用户：先取 SecurityContext；取不到再回退解析 Authorization ======
@@ -336,6 +459,18 @@ public class UserController {
         public LocalDate expireDate;    // 卡有效期
         public List<TrainingExperienceView> experiences;
 
+        // ===== 新增：发卡控制相关字段 =====
+
+        // 卡片发放状态（例如 NONE, REQUESTED, APPROVED, ACTIVATED, REVOKED, EXPIRED）
+        public String cardIssueStatus;
+
+        // 卡号
+        public String cardNumber;
+
+        // 卡片激活时间
+        public LocalDateTime cardActivatedAt;
+
+
         static UserView from(User u) {
             UserView v = new UserView();
             v.id = u.getId();
@@ -359,6 +494,10 @@ public class UserController {
             v.activatedAt = u.getActivatedAt();
             v.isActive = u.getIsActive();
             v.expireDate = u.getExpireDate();
+            v.cardIssueStatus = u.getCardIssueStatus() != null ? u.getCardIssueStatus().name() : null;
+            v.cardNumber = u.getCardNumber();
+            v.cardActivatedAt = u.getCardActivatedAt();
+
 
             // ✅ 培训经历映射
             List<UserTrainingExperience> exps = u.getExperiences();
