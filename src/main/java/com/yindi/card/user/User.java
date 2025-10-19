@@ -53,6 +53,25 @@ public class User {
     @Column(name="expire_date")
     private LocalDate expireDate;
 
+    // ✅ 新增审批状态字段
+    @Column(name = "status")
+    private String status; // PENDING / APPROVED / REJECTED
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "approved_by")
+    private Long approvedBy;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
+    @Column(name = "activated_at")
+    private LocalDateTime activatedAt;
+
+    @Column(name = "is_active")
+    private Boolean isActive;
+
     @Column(name="created_at", nullable=false, updatable=false)
     private LocalDateTime createdAt;
 
@@ -114,6 +133,55 @@ public class User {
 
     public LocalDate getExpireDate() { return expireDate; }
     public void setExpireDate(LocalDate expireDate) { this.expireDate = expireDate; }
+
+    // 审批状态
+    public String getStatus() {
+        return status;
+    }
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    // 审批时间
+    public LocalDateTime getApprovedAt() {
+        return approvedAt;
+    }
+    public void setApprovedAt(LocalDateTime approvedAt) {
+        this.approvedAt = approvedAt;
+    }
+
+    // 审批人
+    public Long getApprovedBy() {
+        return approvedBy;
+    }
+    public void setApprovedBy(Long approvedBy) {
+        this.approvedBy = approvedBy;
+    }
+
+    // 拒绝原因
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
+
+    // 激活时间
+    public LocalDateTime getActivatedAt() {
+        return activatedAt;
+    }
+    public void setActivatedAt(LocalDateTime activatedAt) {
+        this.activatedAt = activatedAt;
+    }
+
+    // 是否激活
+    public Boolean getIsActive() {
+        return isActive;
+    }
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
+    }
+
 
     public LocalDateTime getCreatedAt() { return createdAt; }
 

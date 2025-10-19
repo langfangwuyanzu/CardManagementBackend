@@ -31,6 +31,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -84,6 +89,84 @@ public class UserController {
         m.put("message", message);
         return m;
     }
+
+
+    // ====== 3) 审批接口（ADMIN） ======
+
+    /** 审批通过 */
+    @PostMapping("/{id}/approve")
+    @PermitAll
+    @Transactional
+    public ResponseEntity<?> approveUser(@PathVariable Long id, Authentication auth) {
+        try {
+            User u = repo.findById(id).orElse(null);
+            if (u == null) return ResponseEntity.status(404).body(err("user_not_found", "id=" + id));
+
+            // 取审批人ID（可选）
+            Long adminId = null;
+            if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+                String adminEmail = auth.getName();
+                adminId = repo.findByEmail(adminEmail).map(User::getId).orElse(null);
+            }
+
+            // 已是 APPROVED 直接返回
+            if ("APPROVED".equalsIgnoreCase(u.getStatus())) {
+                return ResponseEntity.ok(UserView.from(u));
+            }
+
+            u.setStatus("APPROVED");
+            u.setIsActive(true);
+            u.setApprovedAt(java.time.LocalDateTime.now());
+            u.setApprovedBy(adminId);
+            u.setActivatedAt(java.time.LocalDateTime.now());
+            u.setRejectionReason(null); // 通过时清理拒绝原因
+            repo.saveAndFlush(u);
+
+            return ResponseEntity.ok(UserView.from(u));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(err("approve_failed", e.getMessage()));
+        }
+    }
+
+    /** 审批拒绝 */
+    @PostMapping("/{id}/reject")
+    @PermitAll
+    @Transactional
+    public ResponseEntity<?> rejectUser(@PathVariable Long id, @RequestBody RejectRequest body, Authentication auth) {
+        try {
+            User u = repo.findById(id).orElse(null);
+            if (u == null) return ResponseEntity.status(404).body(err("user_not_found", "id=" + id));
+
+            // 取审批人ID（可选）
+            Long adminId = null;
+            if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+                String adminEmail = auth.getName();
+                adminId = repo.findByEmail(adminEmail).map(User::getId).orElse(null);
+            }
+
+            u.setStatus("REJECTED");
+            u.setIsActive(false);
+            u.setApprovedAt(java.time.LocalDateTime.now());  // 记录审批时间
+            u.setApprovedBy(adminId);
+            u.setActivatedAt(null);                          // 被拒，不激活
+            u.setRejectionReason(body == null ? null : body.getReason());
+            repo.saveAndFlush(u);
+
+            return ResponseEntity.ok(UserView.from(u));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(err("reject_failed", e.getMessage()));
+        }
+    }
+
+    /** 拒绝请求体 */
+    public static class RejectRequest {
+        private String reason;
+        public String getReason() { return reason; }
+        public void setReason(String reason) { this.reason = reason; }
+    }
+
 
     // ====== 1) 当前用户：基于 token 返回完整用户信息（含 Training Experience） ======
 
@@ -244,6 +327,13 @@ public class UserController {
         public String email;
         public String role;
         public int birthday;
+        public String status;           // 审批状态
+        public LocalDateTime approvedAt;
+        public Long approvedBy;
+        public String rejectionReason;
+        public LocalDateTime activatedAt;
+        public Boolean isActive;
+        public LocalDate expireDate;    // 卡有效期
         public List<TrainingExperienceView> experiences;
 
         static UserView from(User u) {
@@ -260,6 +350,17 @@ public class UserController {
             v.email = u.getEmail();
             v.birthday = u.getYearOfBirth() == null ? 0 : u.getYearOfBirth();
             v.role = u.getRole();
+
+            // ✅ 审批相关字段
+            v.status = u.getStatus();
+            v.approvedAt = u.getApprovedAt();
+            v.approvedBy = u.getApprovedBy();
+            v.rejectionReason = u.getRejectionReason();
+            v.activatedAt = u.getActivatedAt();
+            v.isActive = u.getIsActive();
+            v.expireDate = u.getExpireDate();
+
+            // ✅ 培训经历映射
             List<UserTrainingExperience> exps = u.getExperiences();
             v.experiences = (exps == null)
                     ? Collections.emptyList()
@@ -267,6 +368,7 @@ public class UserController {
             return v;
         }
     }
+
 
     /** 培训经历返回视图 —— 映射 UserTrainingExperience 的字段 */
     static class TrainingExperienceView {
