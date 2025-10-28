@@ -94,12 +94,18 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<UserTrainingExperience> experiences = new ArrayList<>();
 
+    
+
+
     @PrePersist
     public void onCreate() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
+        if (createdAt == null) createdAt = java.time.LocalDateTime.now();
+        if (status == null || status.isBlank()) status = "PENDING";
+        if (role == null || role.isBlank()) role = "USER";
+        if (isActive == null) isActive = false;
+        if (cardIssueStatus == null) cardIssueStatus = CardIssueStatus.REQUESTED;
     }
+
 
     // 方便维护双向关系
     public void addExperience(UserTrainingExperience e){
