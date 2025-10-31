@@ -29,7 +29,8 @@ public class UpgradeController {
     public ResponseEntity<?> uploadJsonPart(
             @PathVariable Long userId,
             @RequestPart("request") String requestJson,
-            @RequestPart(value="file", required=false) MultipartFile file
+            @RequestPart(value="file", required=false) Multip
+                    artFile file
     ) throws Exception {
         UpgradeRequest req = objectMapper.readValue(requestJson, UpgradeRequest.class);
         save(userId, req, file);  // 复用保存逻辑
