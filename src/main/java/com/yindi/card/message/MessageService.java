@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Sort;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -20,6 +22,7 @@ import java.util.Objects;
 public class MessageService {
 
     private final MessageRepository messageRepository;
+
 
     @Autowired
     public MessageService(MessageRepository messageRepository) {
@@ -118,6 +121,8 @@ public class MessageService {
                 .findByAuthorUserIdAndParentIdIsNullAndSentToAdminFalseOrderByCreatedAtDesc(userId, pageable);
     }
 
+
+
     /**
      * 管理员收件箱：新的（尚无管理员回复）的主帖。
      */
@@ -196,6 +201,7 @@ public class MessageService {
         return getThreadMessages(threadId);
     }
 
+
     @Transactional(readOnly = true)
     public Page<Message> listUserUnsent(Long userId, int page, int size) {
         return listUserTopThreads(userId, PageRequest.of(page, size));
@@ -211,6 +217,16 @@ public class MessageService {
         messageRepository.saveAll(list);
     }
 
+//    @Transactional(readOnly = true)
+//    public Page<Message> listUserThreads(Long userId, int page, int size) {
+//        // ⚠️ 如果 listUserTopThreads 只查 unsent，你就需要改它内部逻辑
+//        // 否则直接调用 messageRepository 更简单
+//        return messageRepository.findByAuthorUserIdAndParentIsNullOrderByCreatedAtDesc(
+//                userId, PageRequest.of(page, size)
+//        );
+//    }
+
+
     @Transactional(readOnly = true)
     public Page<Message> adminTodo(int page, int size) {
         return messageRepository
@@ -225,6 +241,13 @@ public class MessageService {
                 .findByParentIdIsNullAndSentToAdminTrueAndHasAdminReplyTrueOrderByLastAdminReplyAtDesc(
                         PageRequest.of(page, size)
                 );
+    }
+
+    // 在 MessageService 类中添加
+    // 在MessageService中
+    public Page<Message> getUserQuestions(Long userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return messageRepository.findByAuthorUserIdAndParentIdIsNullOrderByCreatedAtDesc(userId, pageable);
     }
 
     @Transactional

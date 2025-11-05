@@ -76,6 +76,25 @@ public class MessageController {
         return ResponseEntity.ok(p);
     }
 
+//    @GetMapping("/users/{userId}/threads")
+//    public ResponseEntity<Page<Message>> listUserThreads(@PathVariable Long userId,
+//                                                         @RequestParam(defaultValue = "0") int page,
+//                                                         @RequestParam(defaultValue = "10") int size) {
+//        Page<Message> p = messageService.listUserThreads(userId, page, size);
+//        return ResponseEntity.ok(p);
+//    }
+
+    /** 根据用户ID获取所有提问记录（分页） */
+    @GetMapping("/users/{userId}/questions")
+    public ResponseEntity<Page<Message>> getUserQuestions(@PathVariable Long userId,
+                                                          @RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "10") int size) {
+        Page<Message> p = messageService.getUserQuestions(userId, page, size);
+        return ResponseEntity.ok(p);
+    }
+
+
+
     /** 隐藏/删除单条消息（此处做硬删除；需要软删除可自行扩展字段） */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> hideMessage(@PathVariable Long id) {

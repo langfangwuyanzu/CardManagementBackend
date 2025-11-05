@@ -23,6 +23,12 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             Pageable pageable
     );
 
+    Page<Message> findByAuthorUserIdAndParentIdIsNullOrderByCreatedAtDesc(
+            Long authorUserId, Pageable pageable);
+
+//    Page<Message> findByAuthorUserIdAndParentIsNullOrderByCreatedAtDesc(Long authorUserId, Pageable pageable);
+
+
     // 发给管理员的主帖，已有管理员回复（按最后回复时间降序）
     Page<Message>
     findByParentIdIsNullAndSentToAdminTrueAndHasAdminReplyTrueOrderByLastAdminReplyAtDesc(
